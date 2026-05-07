@@ -345,7 +345,7 @@ export default function App() {
       </div>
 
       {/* 주석 */}
-      <div style={{ marginTop: 8, fontSize: 13, color: "var(--text-dark)", lineHeight: 1.8 }}>
+      <div style={{ marginTop: 8, fontSize: 10, color: "var(--text-dark)", lineHeight: 1.8 }}>
         * 장당 매출액 = Wafer당 Bit × Bit단가 &nbsp;|&nbsp;
         전체 시장규모 = 장당 매출액 × 연간 Capa(월Capa×1,000×12) &nbsp;|&nbsp;
         라인차트: "현재가를 기준점으로 재설정" 클릭 시 선그래프가 현재 선택가 기준으로 재계산
