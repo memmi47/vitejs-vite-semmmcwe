@@ -36,8 +36,8 @@ const fmtB = (n) => `$${(n / 1e9).toFixed(1)}B`;
 const LineTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: 8, padding: "10px 14px", fontSize: 14, boxShadow: "0 4px 6px rgba(0,0,0,0.3)" }}>
-      <div style={{ color: "var(--text-dim)", marginBottom: 8, fontSize: 12, letterSpacing: ".1em" }}>
+    <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: 8, padding: "10px 14px", fontSize: 12, boxShadow: "0 4px 6px rgba(0,0,0,0.3)" }}>
+      <div style={{ color: "var(--text-dim)", marginBottom: 8, fontSize: 10, letterSpacing: ".1em" }}>
         기준가 대비 {label > 0 ? "+" : ""}{Number(label).toFixed(0)}% 변동 시
       </div>
       {payload.map((p) =>
@@ -97,7 +97,9 @@ export default function App() {
     return { key: k, rev, total, op, mg };
   }), [prices, opex]);
 
+  const sorted   = [...metrics].sort((a, b) => b.mg - a.mg);
   const totalMkt = metrics.reduce((s, m) => s + m.total, 0);
+  const badge    = ["①", "②", "③"];
 
   const lineData = useMemo(() => {
     const pts = [];
@@ -154,15 +156,15 @@ export default function App() {
               <div key={k}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 6 }}>
                   <div>
-                    <span style={{ color: COLOR[k], fontWeight: 600, fontSize: 15 }}>{LABELS[k]}</span>
+                    <span style={{ color: COLOR[k], fontWeight: 600, fontSize: 13 }}>{LABELS[k]}</span>
                     {/* ── 단위: DRAM/HBM → Gb, NAND → GB ── */}
-                    <span className="section-label" style={{ marginLeft: 6, fontSize: 11 }}>{PRICEUNIT[k]}</span>
+                    <span className="section-label" style={{ marginLeft: 6, fontSize: 9 }}>{PRICEUNIT[k]}</span>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-main)" }}>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-main)" }}>
                       ${prices[k].toFixed(k === "nand" ? 3 : 2)}
                     </span>
-                    <span style={{ fontSize: 12, marginLeft: 5, color: isUp ? "var(--color-success)" : isDn ? LOSS : "var(--text-dim)" }}>
+                    <span style={{ fontSize: 10, marginLeft: 5, color: isUp ? "var(--color-success)" : isDn ? LOSS : "var(--text-dim)" }}>
                       {isUp ? "+" : ""}{diff.toFixed(1)}%
                     </span>
                   </div>
@@ -173,7 +175,7 @@ export default function App() {
                   <input type="range" min={r.min} max={r.max} step={r.step} value={prices[k]}
                     onChange={e => setPrices(p => ({ ...p, [k]: parseFloat(e.target.value) }))} />
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-dark)", marginTop: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-dark)", marginTop: 4 }}>
                   <span>${r.min}</span>
                   <span style={{ color: "var(--text-dim)" }}>기준 ${basePrices[k].toFixed(k === "nand" ? 3 : 2)}</span>
                   <span>${r.max}</span>
@@ -188,91 +190,86 @@ export default function App() {
       <div className="card">
         <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="section-label" style={{ marginBottom: 0 }}>제품별 지표 요약 — Wafer 1장 기준</div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>영업원가 클릭 시 직접 수정 가능</div>
+          <div style={{ fontSize: 9, color: "var(--text-dim)" }}>영업원가 클릭 시 직접 수정 가능</div>
         </div>
         
         {/* Desktop Header */}
         <div className="data-table-header">
-          <div className="col-left">지표 (Wafer 1장 기준)</div>
-          <div className="col-right" style={{ color: COLOR.dram, fontWeight: 700 }}>DRAM</div>
-          <div className="col-right" style={{ color: COLOR.hbm, fontWeight: 700 }}>HBM</div>
-          <div className="col-right" style={{ color: COLOR.nand, fontWeight: 700 }}>NAND</div>
+          <div className="col-left">제품</div>
+          <div className="col-right">Wafer당 Bit</div>
+          <div className="col-right">장당 매출액</div>
+          <div className="col-right">영업원가 ✎</div>
+          <div className="col-right">장당 영업이익</div>
+          <div className="col-right">전체 시장규모</div>
+          <div className="col-right">이익률</div>
         </div>
         
-        {/* Row 1: Wafer당 Bit */}
-        <div className="data-table-row">
-          <div className="col-left"><span className="section-label" style={{ marginBottom: 0 }}>Wafer당 Bit</span></div>
-          {metrics.map(m => (
-            <div key={m.key} className="col-right" style={{ fontSize: 13, color: "var(--text-muted)" }}>
-              {fmt(BITS_PER_WAFER[m.key])} {BITUNIT[m.key]}
-            </div>
-          ))}
-        </div>
-
-        {/* Row 2: 장당 매출액 */}
-        <div className="data-table-row">
-          <div className="col-left"><span className="section-label" style={{ marginBottom: 0 }}>장당 매출액</span></div>
-          {metrics.map(m => (
-            <div key={m.key} className="col-right" style={{ fontSize: 14, color: "var(--text-muted)" }}>
-              ${fmt(Math.round(m.rev))}
-            </div>
-          ))}
-        </div>
-
-        {/* Row 3: 영업원가 */}
-        <div className="data-table-row">
-          <div className="col-left"><span className="section-label" style={{ marginBottom: 0 }}>영업원가 ✎</span></div>
-          {metrics.map(m => (
-            <div key={m.key} className="col-right">
-              <OpexInput k={m.key} value={opex[m.key]} onChange={updateOpex} />
-            </div>
-          ))}
-        </div>
-
-        {/* Row 4: 장당 영업이익 */}
-        <div className="data-table-row">
-          <div className="col-left"><span className="section-label" style={{ marginBottom: 0 }}>장당 영업이익</span></div>
-          {metrics.map(m => {
-            const pos = m.op >= 0;
-            return (
-              <div key={m.key} className="col-right" style={{ fontSize: 14, fontWeight: 700, color: pos ? "var(--color-success)" : LOSS }}>
-                {pos ? "+" : "-"}${fmt(Math.abs(Math.round(m.op)))}
+        {/* Rows */}
+        {sorted.map((m, i) => {
+          const pos = m.op >= 0;
+          return (
+            <div key={m.key} className="data-table-row">
+              <div className="col-left" style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{badge[i]}</span>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLOR[m.key], boxShadow: `0 0 4px ${COLOR[m.key]}` }} />
+                <span style={{ fontSize: 13, color: COLOR[m.key], fontWeight: 600 }}>{LABELS[m.key]}</span>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Row 5: 이익률 */}
-        <div className="data-table-row">
-          <div className="col-left"><span className="section-label" style={{ marginBottom: 0 }}>이익률</span></div>
-          {metrics.map(m => {
-            const pos = m.op >= 0;
-            return (
-              <div key={m.key} className="col-right">
-                <span className={`badge ${pos ? "success" : "loss"}`}>
-                  {m.mg.toFixed(1)}%
+              
+              <div>
+                <span className="mobile-label">Wafer당 Bit</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {fmt(BITS_PER_WAFER[m.key])} {BITUNIT[m.key]}
                 </span>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Row 6: 전체 시장규모 */}
-        <div className="data-table-row">
-          <div className="col-left"><span className="section-label" style={{ marginBottom: 0 }}>전체 시장규모</span></div>
-          {metrics.map(m => (
-            <div key={m.key} className="col-right" style={{ fontSize: 14, color: "var(--text-muted)" }}>
-              {fmtB(m.total)}
+              
+              <div>
+                <span className="mobile-label">장당 매출액</span>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  ${fmt(Math.round(m.rev))}
+                </span>
+              </div>
+              
+              <div>
+                <span className="mobile-label">영업원가 ✎</span>
+                <div>
+                  <OpexInput k={m.key} value={opex[m.key]} onChange={updateOpex} />
+                </div>
+              </div>
+              
+              <div>
+                <span className="mobile-label">장당 영업이익</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: pos ? "var(--color-success)" : LOSS }}>
+                  {pos ? "+" : "-"}${fmt(Math.abs(Math.round(m.op)))}
+                </span>
+              </div>
+              
+              <div>
+                <span className="mobile-label">전체 시장규모</span>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  {fmtB(m.total)}
+                </span>
+              </div>
+              
+              <div>
+                <span className="mobile-label">이익률</span>
+                <div>
+                  <span className={`badge ${pos ? "success" : "loss"}`}>
+                    {m.mg.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-
+          );
+        })}
+        
         {/* Total Row */}
-        <div className="data-table-total" style={{ display: "flex", justifyContent: "space-between" }}>
-          <span className="section-label" style={{ marginBottom: 0 }}>Total 시장규모</span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-main)" }}>
+        <div className="data-table-total">
+          <span className="section-label" style={{ marginBottom: 0 }}>Total</span>
+          <span className="hide-on-mobile" /><span className="hide-on-mobile" /><span className="hide-on-mobile" /><span className="hide-on-mobile" />
+          <span style={{ textAlign: "right", fontSize: 14, fontWeight: 700, color: "var(--text-main)" }}>
             {fmtB(totalMkt)}
           </span>
+          <span className="hide-on-mobile" />
         </div>
       </div>
 
@@ -281,7 +278,7 @@ export default function App() {
         <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div className="section-label">가격 변화율 대비 영업이익률 추이</div>
-            <div style={{ fontSize: 14, color: "var(--text-dark)", marginTop: 4 }}>
+            <div style={{ fontSize: 9, color: "var(--text-dark)", marginTop: 4 }}>
               ● = 현재 선택가 위치 &nbsp;|&nbsp; 점선 = 기준가(0%) &nbsp;|&nbsp; 적선 = 손익분기점
             </div>
           </div>
@@ -291,7 +288,7 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 20, marginBottom: 12, flexWrap: "wrap" }}>
           {KEYS.map((k) => (
-            <div key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 15 }}>
+            <div key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
               <svg width="22" height="10">
                 <line x1="0" y1="5" x2="22" y2="5" stroke={COLOR[k]} strokeWidth="2"/>
                 <circle cx="11" cy="5" r="4" fill={COLOR[k]} stroke="var(--bg-card)" strokeWidth="1.5"/>
@@ -311,17 +308,17 @@ export default function App() {
               domain={[LINE_MIN, LINE_MAX]}
               ticks={[-60, -40, -20, 0, 20, 40, 60, 80, 100]}
               tickFormatter={(v) => `${v > 0 ? "+" : ""}${v}%`}
-              tick={{ fontSize: 13, fill: "var(--text-dim)" }}
+              tick={{ fontSize: 9, fill: "var(--text-dim)" }}
               axisLine={{ stroke: "var(--border-color)" }} tickLine={false}
             />
             <YAxis
               tickFormatter={(v) => `${v}%`}
-              tick={{ fontSize: 13, fill: "var(--text-dim)" }}
-              axisLine={false} tickLine={false} width={45}
+              tick={{ fontSize: 9, fill: "var(--text-dim)" }}
+              axisLine={false} tickLine={false} width={40}
             />
             <Tooltip content={<LineTooltip />} cursor={{ stroke: "var(--text-dim)", strokeWidth: 1, strokeDasharray: "3 3" }} />
             <ReferenceLine x={0} stroke="var(--text-dim)" strokeDasharray="5 3"
-              label={{ value: "기준가", position: "insideTopLeft", fill: "var(--text-dim)", fontSize: 13, dy: -12 }} />
+              label={{ value: "기준가", position: "insideTopLeft", fill: "var(--text-dim)", fontSize: 9, dy: -10 }} />
             <ReferenceLine y={0} stroke="rgba(248, 113, 113, 0.3)" strokeWidth={1.5} />
             {KEYS.map((k) => (
               <Line key={k} type="monotone" dataKey={k}
@@ -336,7 +333,7 @@ export default function App() {
                 <ReferenceDot key={k}
                   x={parseFloat(x.toFixed(1))} y={parseFloat(y.toFixed(2))}
                   r={5} fill={COLOR[k]} stroke="var(--bg-card)" strokeWidth={2}
-                  label={{ value: `${y.toFixed(1)}%`, position: "top", fill: COLOR[k], fontSize: 13, dy: -5 }}
+                  label={{ value: `${y.toFixed(1)}%`, position: "top", fill: COLOR[k], fontSize: 9, dy: -3 }}
                 />
               );
             })}
@@ -345,7 +342,7 @@ export default function App() {
       </div>
 
       {/* 주석 */}
-      <div style={{ marginTop: 8, fontSize: 10, color: "var(--text-dark)", lineHeight: 1.8 }}>
+      <div style={{ marginTop: 8, fontSize: 9, color: "var(--text-dark)", lineHeight: 1.8 }}>
         * 장당 매출액 = Wafer당 Bit × Bit단가 &nbsp;|&nbsp;
         전체 시장규모 = 장당 매출액 × 연간 Capa(월Capa×1,000×12) &nbsp;|&nbsp;
         라인차트: "현재가를 기준점으로 재설정" 클릭 시 선그래프가 현재 선택가 기준으로 재계산
