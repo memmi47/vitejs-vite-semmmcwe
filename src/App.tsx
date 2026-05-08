@@ -5,32 +5,35 @@ import {
 } from "recharts";
 import "./App.css";
 
+// ── 타입 선언 (에러 해결의 핵심) ──────────────────────────────────────────
+type MemoryKey = "dram" | "hbm" | "nand";
+
 // ── 상수 ───────────────────────────────────────────────────────────────
-const ORIG_PRICE = { dram: 1.15, hbm: 2.15, nand: 0.15 };
-const ORIG_OPEX  = { dram: 2800, hbm: 5000, nand: 4800 };
-const BITS_PER_WAFER = { dram: 17500, hbm: 7500, nand: 77000 };
-const MONTHLY_CAPA   = { dram: 1600, hbm: 400, nand: 1300 };
-const ANNUAL_WAFERS  = {
+const ORIG_PRICE: Record<MemoryKey, number> = { dram: 1.15, hbm: 2.15, nand: 0.15 };
+const ORIG_OPEX: Record<MemoryKey, number>  = { dram: 2800, hbm: 5000, nand: 4800 };
+const BITS_PER_WAFER: Record<MemoryKey, number> = { dram: 17500, hbm: 7500, nand: 77000 };
+const MONTHLY_CAPA: Record<MemoryKey, number>   = { dram: 1600, hbm: 400, nand: 1300 };
+const ANNUAL_WAFERS: Record<MemoryKey, number>  = {
   dram: MONTHLY_CAPA.dram * 1000 * 12,
   hbm:  MONTHLY_CAPA.hbm  * 1000 * 12,
   nand: MONTHLY_CAPA.nand * 1000 * 12,
 };
 
-const LABELS   = { dram: "DRAM", hbm: "HBM", nand: "NAND" };
-const PRICEUNIT = { dram: "$/Gb", hbm: "$/Gb", nand: "$/GB" };   
-const BITUNIT   = { dram: "Gb",   hbm: "Gb",   nand: "GB"   };   
-const COLOR    = { dram: "var(--color-dram)", hbm: "var(--color-hbm)", nand: "var(--color-nand)" };
-const SLIDER_R = {
+const LABELS: Record<MemoryKey, string>   = { dram: "DRAM", hbm: "HBM", nand: "NAND" };
+const PRICEUNIT: Record<MemoryKey, string> = { dram: "$/Gb", hbm: "$/Gb", nand: "$/GB" };   
+const BITUNIT: Record<MemoryKey, string>   = { dram: "Gb",   hbm: "Gb",   nand: "GB"   };   
+const COLOR: Record<MemoryKey, string>    = { dram: "var(--color-dram)", hbm: "var(--color-hbm)", nand: "var(--color-nand)" };
+const SLIDER_R: Record<MemoryKey, { min: number; max: number; step: number }> = {
   dram: { min: 0.30, max: 2.50, step: 0.01  },
   hbm:  { min: 0.50, max: 5.00, step: 0.01  },
   nand: { min: 0.03, max: 0.40, step: 0.005 },
 };
-const KEYS    = ["dram", "hbm", "nand"];
+const KEYS: MemoryKey[] = ["dram", "hbm", "nand"];
 const LOSS    = "var(--color-loss)";
 const LINE_MIN = -70; const LINE_MAX = 100;
 
-const fmt  = (n, d = 0) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
-const fmtB = (n) => `$${(n / 1e9).toFixed(1)}B`;
+const fmt  = (n: number, d = 0) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtB = (n: number) => `$${(n / 1e9).toFixed(1)}B`;
 
 // ── 라인차트 툴팁 ───────────────────────────────────────────────────────
 const LineTooltip = ({ active, payload, label }: any) => {
@@ -40,22 +43,29 @@ const LineTooltip = ({ active, payload, label }: any) => {
       <div style={{ color: "var(--text-dim)", marginBottom: 8, fontSize: 10, letterSpacing: ".1em" }}>
         기준가 대비 {label > 0 ? "+" : ""}{Number(label).toFixed(0)}% 변동 시
       </div>
-      {payload.map((p) =>
-        p.value != null ? (
-          <div key={p.dataKey} style={{ display: "flex", justifyContent: "space-between", gap: 22, marginBottom: 3 }}>
-            <span style={{ color: COLOR[p.dataKey] }}>{LABELS[p.dataKey]}</span>
-            <span style={{ fontWeight: 700, color: p.value >= 0 ? COLOR[p.dataKey] : LOSS }}>
+      {payload.map((p: any) => {
+        const k = p.dataKey as MemoryKey; // 타입 단언 추가
+        return p.value != null ? (
+          <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 22, marginBottom: 3 }}>
+            <span style={{ color: COLOR[k] }}>{LABELS[k]}</span>
+            <span style={{ fontWeight: 700, color: p.value >= 0 ? COLOR[k] : LOSS }}>
               {p.value.toFixed(1)}%
             </span>
           </div>
-        ) : null
-      )}
+        ) : null;
+      })}
     </div>
   );
 };
 
 // ── OPEX 편집 인풋 ─────────────────────────────────────────────────────
-const OpexInput = ({ k, value, onChange }: any) => {
+interface OpexInputProps {
+  k: MemoryKey;
+  value: number;
+  onChange: (k: MemoryKey, v: number) => void;
+}
+
+const OpexInput = ({ k, value, onChange }: OpexInputProps) => {
   const [editing, setEditing] = useState(false);
   const [draft,   setDraft]   = useState("");
 
@@ -83,11 +93,11 @@ const OpexInput = ({ k, value, onChange }: any) => {
 
 // ── 메인 ──────────────────────────────────────────────────────────────
 export default function App() {
-  const [prices,     setPrices]     = useState({ ...ORIG_PRICE });
-  const [basePrices, setBasePrices] = useState({ ...ORIG_PRICE });
-  const [opex,       setOpex]       = useState({ ...ORIG_OPEX  });
+  const [prices,     setPrices]     = useState<Record<MemoryKey, number>>({ ...ORIG_PRICE });
+  const [basePrices, setBasePrices] = useState<Record<MemoryKey, number>>({ ...ORIG_PRICE });
+  const [opex,       setOpex]       = useState<Record<MemoryKey, number>>({ ...ORIG_OPEX  });
 
-  const updateOpex = (k, v) => setOpex(o => ({ ...o, [k]: v }));
+  const updateOpex = (k: MemoryKey, v: number) => setOpex(o => ({ ...o, [k]: v }));
 
   const metrics = useMemo(() => KEYS.map((k) => {
     const rev   = BITS_PER_WAFER[k] * prices[k];
@@ -104,7 +114,7 @@ export default function App() {
   const lineData = useMemo(() => {
     const pts = [];
     for (let p = LINE_MIN; p <= LINE_MAX; p++) {
-      const pt = { pct: p };
+      const pt: Record<string, any> = { pct: p };
       KEYS.forEach((k) => {
         const pr = basePrices[k] * (1 + p / 100);
         const rv = BITS_PER_WAFER[k] * Math.max(pr, 0);
@@ -116,14 +126,14 @@ export default function App() {
   }, [basePrices, opex]);
 
   const curPct = useMemo(() =>
-    Object.fromEntries(KEYS.map((k) => [k, (prices[k] / basePrices[k] - 1) * 100])),
+    Object.fromEntries(KEYS.map((k) => [k, (prices[k] / basePrices[k] - 1) * 100])) as Record<MemoryKey, number>,
     [prices, basePrices]
   );
   const curMg = useMemo(() =>
     Object.fromEntries(KEYS.map((k) => {
       const rv = BITS_PER_WAFER[k] * prices[k];
       return [k, rv > 0 ? (rv - opex[k]) / rv * 100 : null];
-    })),
+    })) as Record<MemoryKey, number | null>,
     [prices, opex]
   );
 
@@ -294,8 +304,8 @@ export default function App() {
                 <circle cx="11" cy="5" r="4" fill={COLOR[k]} stroke="var(--bg-card)" strokeWidth="1.5"/>
               </svg>
               <span style={{ color: "var(--text-muted)" }}>{LABELS[k]}</span>
-              <span style={{ color: curMg[k] != null && curMg[k] >= 0 ? COLOR[k] : LOSS, fontWeight: 700 }}>
-                {curMg[k] != null ? `${curMg[k].toFixed(1)}%` : "N/A"}
+              <span style={{ color: curMg[k] != null && curMg[k]! >= 0 ? COLOR[k] : LOSS, fontWeight: 700 }}>
+                {curMg[k] != null ? `${curMg[k]!.toFixed(1)}%` : "N/A"}
               </span>
             </div>
           ))}
